@@ -4,7 +4,6 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const mongoose = require("mongoose");
-require("dotenv").config();
 
 const connectDB = require("./db");
 const FormData = require("./models/FormData");
