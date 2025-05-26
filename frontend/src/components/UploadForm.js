@@ -1,26 +1,19 @@
 import React, { useState } from "react";
+import { Card, Form, Input, Upload, Button, message, Typography, Image } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 
+const { Title } = Typography;
+const { TextArea } = Input;
+
 function UploadForm() {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-  });
+  const [form] = Form.useForm();
   const [file, setFile] = useState(null);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
   const [loading, setLoading] = useState(false);
   const [filePreview, setFilePreview] = useState(null);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+  const handleFileChange = (info) => {
+    const selectedFile = info.file.originFileObj || info.file;
     setFile(selectedFile);
 
     if (selectedFile && selectedFile.type.startsWith("image/")) {
@@ -34,24 +27,21 @@ function UploadForm() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.description || !file) {
-      setMessage("Please fill in all fields and select a file");
-      setMessageType("error");
+  const handleSubmit = async (values) => {
+    if (!file) {
+      message.error("Please select a file");
       return;
     }
 
     const data = new FormData();
-    data.append("name", formData.name);
-    data.append("description", formData.description);
+    data.append("name", values.name);
+    data.append("description", values.description);
     data.append("file", file);
 
     setLoading(true);
 
     try {
-      const response = await axios.post(
+      await axios.post(
         "http://localhost:5000/api/form-data",
         data,
         {
@@ -61,77 +51,78 @@ function UploadForm() {
         }
       );
 
-      setFormData({ name: "", description: "" });
+      form.resetFields();
       setFile(null);
       setFilePreview(null);
-      setMessage("Form submitted successfully!");
-      setMessageType("success");
-
-      document.getElementById("file").value = "";
+      message.success("Form submitted successfully!");
     } catch (error) {
       console.error("Error submitting form:", error);
-      setMessage("Error submitting form. Please try again.");
-      setMessageType("error");
+      message.error("Error submitting form. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div>
-      <h2>Upload Form</h2>
-      <div className="form-container">
-        {message && <div className={`message ${messageType}`}>{message}</div>}
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <Card>
+        <Title level={2}>Upload Form</Title>
+        
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
+          <Form.Item
+            label="Name"
+            name="name"
+            rules={[{ required: true, message: "Please enter your name" }]}
+          >
+            <Input placeholder="Enter your name" />
+          </Form.Item>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="name">Name:</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter your name"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="description">Description:</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
+          <Form.Item
+            label="Description"
+            name="description"
+            rules={[{ required: true, message: "Please enter a description" }]}
+          >
+            <TextArea
+              rows={4}
               placeholder="Enter a description"
-            ></textarea>
-          </div>
+            />
+          </Form.Item>
 
-          <div className="form-group">
-            <label htmlFor="file">Upload File:</label>
-            <input type="file" id="file" onChange={handleFileChange} />
-            <small>
-              Supported files: Images (JPEG, PNG, GIF) and PDF documents (max
-              5MB)
-            </small>
-          </div>
+          <Form.Item label="Upload File">
+            <Upload
+              beforeUpload={() => false}
+              onChange={handleFileChange}
+              maxCount={1}
+              accept="image/*,.pdf"
+            >
+              <Button icon={<UploadOutlined />}>Select File</Button>
+            </Upload>
+            <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+              Supported files: Images (JPEG, PNG, GIF) and PDF documents (max 5MB)
+            </div>
+          </Form.Item>
 
           {filePreview && (
-            <div className="file-preview">
-              <h4>File Preview:</h4>
-              <img
+            <Form.Item label="File Preview">
+              <Image
                 src={filePreview}
                 alt="Preview"
                 style={{ maxWidth: "200px", maxHeight: "200px" }}
               />
-            </div>
+            </Form.Item>
           )}
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Submitting..." : "Submit"}
-          </button>
-        </form>
-      </div>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading} size="large">
+              Submit
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
     </div>
   );
 }
